@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -12,6 +14,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:tabua_de_mares/screens/no_permission.dart';
 
+import '../env.dart';
 import '../models/altura.dart';
 import '../models/extreme.dart';
 
@@ -109,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
       });
 
       if (_latitude != null && _longitude != null) {
-        await _fetchCityAndTidalData(_latitude, _longitude);
+        await _fetchCityAndTidalData(_latitude!, _longitude!);
       }
     } catch (e) {
       setState(() {
@@ -133,7 +136,92 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _fetchCityAndTidalData(double latitude, double longitude) async {
+    try {
+      final cityResponse = await http.post(
+        Uri.parse('${Env.baseUrl}/api/get-location'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'latitude': latitude.toString(),
+          'longitude': longitude.toString(),
+        }),
+      );
 
+      if (cityResponse.statusCode == 200) {
+        final cityData = jsonDecode(cityResponse.body);
+        final city = cityData['city'];
+
+        setState(() {
+          _regiao = cityData['localizacao'];
+        });
+
+        // Envia o POST para obter os dados da maré
+        final tidalResponse = await http.post(
+          Uri.parse('${Env.baseUrl}/api/get-tidal/$city'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'token': Env.tokenApi}),
+        );
+
+        if (tidalResponse.statusCode == 200) {
+          final alturasData = jsonDecode(tidalResponse.body)['alturas'];
+          final extremosData = jsonDecode(tidalResponse.body)['extremos'];
+
+          _alturas.clear();
+
+          alturasData.asMap().forEach((index, item) {
+            _alturas.add(
+              Altura(
+                dt: index,
+                date: DateTime.parse(item['date']),
+                height: double.parse(item['height'].toStringAsFixed(2)),
+              ),
+            );
+          });
+
+          List<FlSpot> spots = _alturas.map((altura) {
+            return FlSpot(altura.dt.toDouble(), altura.height);
+          }).toList();
+
+          setState(() {
+            this.spots = spots;
+            _isFetching = false;
+          });
+
+          _extremos.clear();
+
+          extremosData.forEach((item) {
+            _extremos.add(
+              Extreme(
+                date: item['date'],
+                height: item['height'],
+                type: item['type'],
+              ),
+            );
+          });
+
+          setState(() {
+            _alturas = _alturas;
+            _extremos = _extremos;
+          });
+        } else {
+          setState(() {
+            _error = 'Erro ao obter dados da maré';
+            _isFetching = false;
+          });
+        }
+      } else {
+        setState(() {
+          _error = 'Erro ao obter cidade';
+          _isFetching = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'Erro ao buscar dados da API';
+        _isFetching = false;
+      });
+    }
+  }
 
   @override
   void initState() {
