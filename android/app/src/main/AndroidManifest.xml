@@ -1,6 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="tabua_de_mares"
+        android:label="Tábua de Marés"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

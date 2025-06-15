@@ -1,16 +1,12 @@
-import 'dart:ffi';
-
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'dart:io';
 import 'package:location/location.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:tabua_de_mares/screens/no_permission.dart';
 import 'package:tabua_de_mares/widgets/box_mare.dart';
