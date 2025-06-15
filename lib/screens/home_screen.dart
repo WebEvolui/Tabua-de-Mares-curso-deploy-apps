@@ -314,6 +314,161 @@ class _HomeScreenState extends State<HomeScreen> {
                               showIconBar: false,
                             ),
                             SizedBox(height: 10),
+                            Screenshot(
+                              controller: screenshotController,
+                              child: Container(
+                                height: 400,
+                                decoration: BoxDecoration(
+                                  color: Colors.indigo.shade50,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Padding(
+                                  padding: EdgeInsets.all(10),
+                                  child: LineChart(
+                                    LineChartData(
+                                      lineTouchData: LineTouchData(
+                                        touchTooltipData: LineTouchTooltipData(
+                                          getTooltipColor: (touchedSpot) =>
+                                              Colors.white,
+                                        ),
+                                      ),
+                                      minY: (spots != null && spots!.isNotEmpty)
+                                          ? spots!
+                                                    .map((spot) => spot.y)
+                                                    .reduce(
+                                                      (a, b) => a < b ? a : b,
+                                                    ) -
+                                                0.5
+                                          : 0,
+                                      maxY: (spots != null && spots!.isNotEmpty)
+                                          ? spots!
+                                                    .map((spot) => spot.y)
+                                                    .reduce(
+                                                      (a, b) => a > b ? a : b,
+                                                    ) +
+                                                0.5
+                                          : 1,
+                                      gridData: FlGridData(show: true),
+                                      titlesData: FlTitlesData(
+                                        leftTitles: AxisTitles(
+                                          sideTitles: SideTitles(
+                                            showTitles: true,
+                                            reservedSize: 40,
+                                            getTitlesWidget: (value, meta) {
+                                              return Text(
+                                                '${value.toStringAsFixed(1)}m',
+                                                style: TextStyle(fontSize: 10),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                        bottomTitles: AxisTitles(
+                                          sideTitles: SideTitles(
+                                            showTitles: true,
+                                            getTitlesWidget: (value, meta) {
+                                              return Text('${value.round()}h');
+                                            },
+                                          ),
+                                        ),
+                                        topTitles: AxisTitles(
+                                          sideTitles: SideTitles(
+                                            showTitles: false,
+                                          ),
+                                        ),
+                                        rightTitles: AxisTitles(
+                                          sideTitles: SideTitles(
+                                            showTitles: false,
+                                          ),
+                                        ),
+                                      ),
+                                      borderData: FlBorderData(show: true),
+                                      lineBarsData: [
+                                        LineChartBarData(
+                                          spots: spots ?? [],
+                                          isCurved: true,
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              Colors.indigo,
+                                              Colors.blueAccent,
+                                            ],
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                          ),
+                                          barWidth: 3,
+                                          isStrokeCapRound: true,
+                                          belowBarData: BarAreaData(
+                                            show: true,
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                Colors.indigo.withValues(
+                                                  alpha: 0.3,
+                                                ),
+                                                Colors.blueAccent.withValues(
+                                                  alpha: 0.1,
+                                                ),
+                                              ],
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                            ),
+                                          ),
+                                          dotData: FlDotData(show: false),
+                                        ),
+                                      ],
+                                      extraLinesData: ExtraLinesData(
+                                        verticalLines: [
+                                          VerticalLine(
+                                            x: _horaAtual,
+                                            color: Colors.black,
+                                            strokeWidth: 1,
+                                            dashArray: [10, 3],
+                                            label: VerticalLineLabel(
+                                              show: true,
+                                              alignment: Alignment.centerLeft,
+                                              style: TextStyle(
+                                                color: Colors.black,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                              labelResolver: (line) => 'Agora',
+                                            ),
+                                          ),
+                                          ..._extremos.map((extremo) {
+                                            final DateTime
+                                            dateTime = DateTime.parse(
+                                              '$_anoMesDia ${extremo.date.substring(11, 16)}:00Z',
+                                            );
+                                            final double xValue =
+                                                dateTime.hour +
+                                                (dateTime.minute / 60);
+
+                                            return VerticalLine(
+                                              x: xValue,
+                                              strokeWidth: 0,
+                                              dashArray: [5, 5],
+                                              label: VerticalLineLabel(
+                                                show: true,
+                                                alignment: extremo.type == 'Low'
+                                                    ? Alignment.bottomCenter
+                                                    : Alignment.topCenter,
+                                                style: TextStyle(
+                                                  color: extremo.type == 'Low'
+                                                      ? Colors.indigo
+                                                      : Colors.red,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                labelResolver: (line) =>
+                                                    '${extremo.type == 'Low' ? 'Baixa' : 'Alta'} : ${extremo.height.toStringAsFixed(2)}m',
+                                              ),
+                                            );
+                                          }),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
