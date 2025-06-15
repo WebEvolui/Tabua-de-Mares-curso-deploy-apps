@@ -13,6 +13,8 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:tabua_de_mares/screens/no_permission.dart';
+import 'package:tabua_de_mares/widgets/box_mare.dart';
+import 'package:tabua_de_mares/widgets/container_title.dart';
 
 import '../env.dart';
 import '../models/altura.dart';
@@ -231,6 +233,92 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    double screenWidth = MediaQuery.of(context).size.width - 20;
+    double itemWidth = (screenWidth - (3 * 8)) / 4;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Tábua de Marés',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.indigo,
+        elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: () {
+              _getLocation();
+            },
+            icon: Icon(Icons.refresh, color: Colors.white),
+          ),
+          IconButton(
+            onPressed: () {
+              _shareGraph();
+            },
+            icon: Icon(Icons.share, color: Colors.white),
+          ),
+        ],
+      ),
+      backgroundColor: Colors.indigo,
+      body: SafeArea(
+        child: _error != ''
+            ? Center(child: Text(_error))
+            : Padding(
+                padding: EdgeInsets.all(10),
+                child: _isFetching
+                    ? Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      )
+                    : SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            ContainerTitle(title: 'Estatísticas'),
+                            SizedBox(height: 10),
+                            Container(
+                              color: Colors.transparent,
+                              padding: EdgeInsets.only(top: 10, bottom: 10),
+                              child: Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
+                                alignment: WrapAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    _weekdayWithDateBR,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  Text(
+                                    _regiao,
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: _extremos.map((extremo) {
+                                return SizedBox(
+                                  width: itemWidth,
+                                  child: BoxMare(extremo: extremo),
+                                );
+                              }).toList(),
+                            ),
+                            SizedBox(height: 20),
+                            ContainerTitle(
+                              title: 'Previsões de Maré',
+                              showIconBar: false,
+                            ),
+                            SizedBox(height: 10),
+                          ],
+                        ),
+                      ),
+              ),
+      ),
+    );
   }
 }
