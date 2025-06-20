@@ -1,9 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
-import 'package:share_plus/share_plus.dart';
-import 'dart:io';
 import 'package:location/location.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -12,9 +9,11 @@ import 'package:tabua_de_mares/screens/no_permission.dart';
 import 'package:tabua_de_mares/widgets/box_mare.dart';
 import 'package:tabua_de_mares/widgets/container_title.dart';
 
-import '../env.dart';
-import '../models/altura.dart';
-import '../models/extreme.dart';
+import '../../env.dart';
+import '../../models/altura.dart';
+import '../../models/extreme.dart';
+import 'home_controller.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,7 +23,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final ScreenshotController screenshotController = ScreenshotController();
   double? _latitude;
   double? _longitude;
   bool _isFetching = true;
@@ -48,23 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
       '${_agora.year}-${_agora.month.toString().padLeft(2, '0')}-${_agora.day.toString().padLeft(2, '0')}';
   late final String _weekdayWithDateBR =
       '${_dias[_agora.weekday % 7]} ${_agora.day.toString().padLeft(2, '0')}/${_agora.month.toString().padLeft(2, '0')}/${_agora.year}';
-
-  Future<void> _shareGraph() async {
-    final Uint8List? image = await screenshotController.capture();
-    if (image == null) return;
-
-    final directory = await getTemporaryDirectory();
-    final path = '${directory.path}/grafico.png';
-    final file = File(path);
-    await file.writeAsBytes(image);
-
-    await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(path)],
-        text: 'Gráfico da Tábua de Maré de hoje',
-      ),
-    );
-  }
 
   Future<void> _getLocation() async {
     setState(() {
@@ -145,74 +126,64 @@ class _HomeScreenState extends State<HomeScreen> {
         }),
       );
 
-      if (cityResponse.statusCode == 200) {
-        final cityData = jsonDecode(cityResponse.body);
-        final city = cityData['city'];
-
-        setState(() {
-          _regiao = cityData['localizacao'];
-        });
-
-        // Envia o POST para obter os dados da maré
-        final tidalResponse = await http.post(
-          Uri.parse('${Env.baseUrl}/api/get-tidal/$city'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'token': Env.tokenApi}),
-        );
-
-        if (tidalResponse.statusCode == 200) {
-          final alturasData = jsonDecode(tidalResponse.body)['alturas'];
-          final extremosData = jsonDecode(tidalResponse.body)['extremos'];
-
-          _alturas.clear();
-
-          alturasData.asMap().forEach((index, item) {
-            _alturas.add(
-              Altura(
-                dt: index,
-                date: DateTime.parse(item['date']),
-                height: double.parse(item['height'].toStringAsFixed(2)),
-              ),
-            );
-          });
-
-          List<FlSpot> spots = _alturas.map((altura) {
-            return FlSpot(altura.dt.toDouble(), altura.height);
-          }).toList();
-
-          setState(() {
-            this.spots = spots;
-            _isFetching = false;
-          });
-
-          _extremos.clear();
-
-          extremosData.forEach((item) {
-            _extremos.add(
-              Extreme(
-                date: item['date'],
-                height: item['height'],
-                type: item['type'],
-              ),
-            );
-          });
-
-          setState(() {
-            _alturas = _alturas;
-            _extremos = _extremos;
-          });
-        } else {
-          setState(() {
-            _error = 'Erro ao obter dados da maré';
-            _isFetching = false;
-          });
-        }
-      } else {
+      if (cityResponse.statusCode != 200) {
         setState(() {
           _error = 'Erro ao obter cidade';
           _isFetching = false;
         });
+        return;
       }
+
+      final cityData = jsonDecode(cityResponse.body);
+      final city = cityData['city'];
+
+      setState(() {
+        _regiao = cityData['localizacao'];
+      });
+
+      final tidalResponse = await http.post(
+        Uri.parse('${Env.baseUrl}/api/get-tidal/$city'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'token': Env.tokenApi}),
+      );
+
+      if (tidalResponse.statusCode != 200) {
+        setState(() {
+          _error = 'Erro ao obter dados da maré';
+          _isFetching = false;
+        });
+        return;
+      }
+
+      final responseData = jsonDecode(tidalResponse.body);
+      final alturasData = responseData['alturas'];
+      final extremosData = responseData['extremos'];
+
+      _alturas = alturasData.asMap().entries.map((entry) {
+        final index = entry.key;
+        final item = entry.value;
+        return Altura(
+          dt: index,
+          date: DateTime.parse(item['date']),
+          height: double.parse(item['height'].toStringAsFixed(2)),
+        );
+      }).toList();
+
+      spots = _alturas
+          .map((altura) => FlSpot(altura.dt.toDouble(), altura.height))
+          .toList();
+
+      _extremos = extremosData.map<Extreme>((item) {
+        return Extreme(
+          date: item['date'],
+          height: item['height'],
+          type: item['type'],
+        );
+      }).toList();
+
+      setState(() {
+        _isFetching = false;
+      });
     } catch (e) {
       setState(() {
         _error = 'Erro ao buscar dados da API';
@@ -229,6 +200,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final homeController = context.watch<HomeController>();
+
     double screenWidth = MediaQuery.of(context).size.width - 20;
     double itemWidth = (screenWidth - (3 * 8)) / 4;
 
@@ -249,9 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.refresh, color: Colors.white),
           ),
           IconButton(
-            onPressed: () {
-              _shareGraph();
-            },
+            onPressed: homeController.onShareGraph,
             icon: Icon(Icons.share, color: Colors.white),
           ),
         ],
@@ -311,7 +282,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             SizedBox(height: 10),
                             Screenshot(
-                              controller: screenshotController,
+                              controller: context.read<ScreenshotController>(),
                               child: Container(
                                 height: 400,
                                 decoration: BoxDecoration(
