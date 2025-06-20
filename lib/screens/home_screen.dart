@@ -9,10 +9,10 @@ import 'package:tabua_de_mares/screens/no_permission.dart';
 import 'package:tabua_de_mares/widgets/box_mare.dart';
 import 'package:tabua_de_mares/widgets/container_title.dart';
 
-import '../../env.dart';
-import '../../models/altura.dart';
-import '../../models/extreme.dart';
-import 'home_controller.dart';
+import '../env.dart';
+import '../models/altura.dart';
+import '../models/extreme.dart';
+import '../controllers/home_controller.dart';
 import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {

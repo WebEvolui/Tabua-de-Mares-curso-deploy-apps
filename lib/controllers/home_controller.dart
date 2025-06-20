@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '/models/altura.dart';
 import '/models/extreme.dart';
-import 'graph_sharer_service.dart';
+import '../services/graph_sharer_service.dart';
 import '/services/location_service.dart';
 import '/services/tidal_service.dart';
 import '/models/tidal_data.dart';
